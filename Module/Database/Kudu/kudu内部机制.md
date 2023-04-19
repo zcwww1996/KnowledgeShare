@@ -1,0 +1,47 @@
+[TOC]
+
+1. kudu:面向结构化数据的开源的table存储引擎，支持低延迟的随机存取以及高效的分析处理
+
+2. kudu的内部实现原理如图所示：
+
+[![kudu的内部实现原理.jpg](https://img02.sogoucdn.com/app/a/100540022/2021011516132115242025.jpg)](https://www.helloimg.com/images/2021/01/15/kudu3ec794f4d6110c7a.jpg)
+
+3. kudu通过水平分区来实现数据的分布式存储，存储以每个partition即tablet为单位，并基于raft协议解决多个partition副本的一致性问题
+
+4. kudu表会指定其所有column的一个有序子集为primary key，作为在update和delete时的索引并用于分区，具有唯一性，并不能通过alter来drop这些primary key
+
+5. kudu目前不支持除primary key以外的二级索引和唯一性限制
+
+6. kudu使用scan算子来查询table中的数据，scan使用projection来选择columns并支持两种类型的谓词来filter，一个是column与常量的对比，另一个是primary key的范围
+
+7. kudu提供了API用于将数据存放在指定的tablet server上面
+
+8. kudu集群包含一个master节点和多个tablet server节点，分别存储元数据和实际的数据
+
+9. kudu对table进行横向分区，单个row将会基于其primary key分到特定的分区中，每个分区称为一个tablet，因此，单个insert或者update操作只会影响单个tablet
+
+10. 在创建kudu表时必须指定分区模式，分区的原理：根据指定的分区模式计算出primary key对应的binary partition key，因为每个tablet覆盖一段连续的binary partition key， 因此可找到相应的tablet分区并进行进一步操作，图示如下：
+
+
+11. kudu中有两种分区模式，即基于hash和基于range，前者由primary key的一个子集以及分区的数量组成，后者由primary key的范围划分组成
+
+12. kudu基于raft协议在集群中对每个tablet都存储多个副本，副本中的内容不是实际的数据，而是操作该副本上的数据时对应的更改信息。
+
+13. kudu的master进程的主要作用：
+- （a）管理所有table以及tablet的元数据信息，比如表模式信息，这些信息存储在内存中一个用户无法访问的单tablet的table当中，称为catalog table，该tablet也基于raft协议实现了master节点的元数据的备份
+- （b）协调集群的正常运行，比如心跳和故障恢复，当集群启动时，tablet server要向master汇报所有tablet信息，后续只汇报增删改的tablet信息。基于raft协议，tablet自身负责其状态的改变，然后master节点再基于raft中的信息来更新tablet的状态信息
+- （c）管理所有tablet的位置信息、分区range、备份信息，当执行读写操作时，client首先从master中查询对应的tablet的位置、raft配置、primary key range等信息并缓存在client端，再直接与对应的tablet server通信，如果tablet信息过期，再重新向master查询
+
+14. tablet server中的每个tablet之间是相互独立解耦的，数据的存储以tablet为单位，其存储设计要求能够提供快速的列式数据扫描、低延迟的随机更新、高效的一致性
+
+15. 每个tablet内部由多个rowset组成，包括一个memrowset和多个diskrowset，前者存储于内存中，后者一部分在内存，一部分在磁盘，table中的单个row只能对应一个rowset。通过insert新插入的数据放在memrowset当中，一旦数据量达到上限(32MB)，触发flush操作，将memrowset存储到磁盘当中变成一个或者多个diskrowset，并生成一个新的空memrowset。
+
+16. memrowset基于B树实现，按行存储，这一点与diskrowset不同。Memrowset中的数据基于primary key有序，因此diskrowset也有序
+
+17. diskrowset包含两部分，即base data以及delta stores。Base data按列来依次存储table中存在于该rowset的数据，对每个列的存储又分成多个page。当查询数据时，根据一个B树结构能够快速定位需要操作的数据所在的page。在base data中按列存储数据时，同时也会存储一个primary key index，用于快速查找待操作的row，同时还会生成一个chunked bloom filter来快速判断待操作的row是否存在于该rowset
+
+18. 按列存储的base data被看做是不可变的，因此执行删改操作时，将删改信息存储在delta stores当中。Delta stores包含一个存储于内存中的deltamemstore和多个存储于磁盘中的deltafiles。当执行删改操作时，先根据primary key基于base data中一个B树结构查找到对应的page，并根据page元数据查找到对应的row在整个rowset中的offset。然后在deltamemstore中存储一个（offset，time）到changelist的映射，deltamemstore也是一个B树，与memrowset被flush为diskrowset一样，当deltamemstore达到一定的容量时，被flush到磁盘变成deltafile，同时生成一个新的空deltamemstore
+
+19. 当diskrowset中的deltafiles较多时，会影响查询速度，因此相关进程将会对其做compaction操作，将其合并到base data当中，该合并过程主要是resolve掉delta stores中的update记录
+
+20. 在每个tablet中还会周期性的对一些diskrowset做compaction操作，生成一些新的diskrowset，目的是对多个diskrowset进行重新排序，以此来使其更有序并减少diskrowset的数量，同时在compaction的过程中还会resolve掉delta stores当中的delete记录
