@@ -6,7 +6,7 @@
 
 时间序列数据存储
 
-[![](https://s6.jpg.cm/2021/12/30/LJRYXE.png)](https://www.z4a.net/images/2021/12/30/image.png)
+[![](https://i0.wp.com/i.niupic.com/images/2023/04/20/alCi.png)](https://www.z4a.net/images/2021/12/30/image.png)
 
 特点
 
@@ -593,7 +593,7 @@ scrape_configs:
 
 3）看下我的node监控已经拉到数据。
 
-[![LJRsah.png](https://s6.jpg.cm/2021/12/30/LJRsah.png)](https://www.z4a.net/images/2021/12/30/2.png)
+[![LJRsah.png](https://i.imgtg.com/2023/04/20/uRn31.png)](https://www.z4a.net/images/2021/12/30/2.png)
 
 可以看到有三个job监控，node是我刚才配置的node\_exporter监控
 
@@ -601,7 +601,7 @@ scrape_configs:
 
 在指标搜索框里输入cpu，可以看到节点cpu信息，这个是按照秒级汇总。
 
-[![LJRmK2.png](https://s6.jpg.cm/2021/12/30/LJRmK2.png)](https://www.helloimg.com/images/2021/12/30/GpcDwo.png)
+[![LJRmK2.png](https://i.imgtg.com/2023/04/20/uRiGG.png)](https://www.helloimg.com/images/2021/12/30/GpcDwo.png)
 
 PromQL有一个名为irate的函数，用于计算距离向量中时间序列的每秒瞬时增长率。让我们在node\_cpu\_seconds\_total度量上使用irate函数。
 
@@ -609,13 +609,13 @@ PromQL有一个名为irate的函数，用于计算距离向量中时间序列的
 
 node\_cpu\_seconds\_total可以看到我部署采集的电脑上各个CPU各个的指标，因为我的电脑是16核所以这边可以看到0-15个线不同维度的状态。
 
-[![LJRrvQ.png](https://s6.jpg.cm/2021/12/30/LJRrvQ.png)](https://www.z4a.net/images/2021/12/30/image_2.png)
+[![LJRrvQ.png](https://i.imgtg.com/2023/04/20/uR7hI.png)](https://www.z4a.net/images/2021/12/30/image_2.png)
 
 完善上面的语句，查看每秒瞬时增长。job的标签是我们在prometheus.yml文件中配置的刮擦名称，可以在target里看到
 
 irate(node\_cpu\_seconds\_total{job="node"}\[5m\])
 
-[![LJRFeS.png](https://s6.jpg.cm/2021/12/30/LJRFeS.png)](https://www.z4a.net/images/2021/12/30/image_3.png)
+[![LJRFeS.png](https://i.imgtg.com/2023/04/20/uRAW6.png)](https://www.z4a.net/images/2021/12/30/image_3.png)
 
 现在将irate函数封装在avg聚合中，并添加了一个by子句，该子句通过实例标签聚合。这将产生三个新的指标，使用来自所有CPU和所有模式的值来平均主机的CPU使用情况。
 
@@ -623,13 +623,13 @@ avg(irate(node\_cpu\_seconds\_total{job="node"}\[5m\])) by (instance)
 
 avg (irate(node\_cpu\_seconds\_total{job="node",mode="idle"}\[5m\])) by (instance) \* 100
 
-[![LJRNZT.png](https://s6.jpg.cm/2021/12/30/LJRNZT.png)](https://www.z4a.net/images/2021/12/30/image_4.png)
+[![LJRNZT.png](https://i.imgtg.com/2023/04/20/uRe2F.png)](https://www.z4a.net/images/2021/12/30/image_4.png)
 
 在这里，查询中添加了一个值为idle的mode标签。这只查询空闲数据。我们通过实例求出结果的平均值，并将其乘以100。现在我们在每台主机上都有5分钟内空闲使用的平均百分比。我们可以把这个变成百分数用这个值减去100，就像这样:
 
 100 - avg (irate(node\_cpu\_seconds\_total{job="node",mode="idle"}\[5m\])) by (instance) \* 100
 
-[![LJRvWH.png](https://s6.jpg.cm/2021/12/30/LJRvWH.png)](https://www.helloimg.com/images/2021/12/30/Gpc8qS.png)
+[![LJRvWH.png](https://i.imgtg.com/2023/04/20/uRNtD.png)](https://www.helloimg.com/images/2021/12/30/Gpc8qS.png)
 
 # 7. 对比mysql的SQL
 
@@ -824,4 +824,5 @@ In cross-service federation, a Prometheus server of one service is configured to
 
 For example, a cluster scheduler running multiple services might expose resource usage information (like memory and CPU usage) about service instances running on the cluster. On the other hand, a service running on that cluster will only expose application-specific service metrics. Often, these two sets of metrics are scraped by separate Prometheus servers. Using federation, the Prometheus server containing service-level metrics may pull in the cluster resource usage metrics about its specific service from the cluster Prometheus, so that both sets of metrics can be used within that server.
 
-[![LJRksW.png](https://s6.jpg.cm/2021/12/30/LJRksW.png)](https://www.helloimg.com/images/2021/12/30/GpcIfD.png)
+[![LJRksW.png](https://i.niupic.com/images/2023/04/20/alCk.png
+)](https://www.helloimg.com/images/2021/12/30/GpcIfD.png)
