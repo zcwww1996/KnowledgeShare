@@ -22,8 +22,7 @@
 ## 1.2 负载均衡
 负载均衡，英文名称为Load Balance，是指建立在现有网络结构之上，并提供了一种廉价有效透明的方法扩展网络设备和服务器的带宽、增加吞吐量、加强网络数据处理能力、提高网络的灵活性和可用性。其原理就是数据流量分摊到多个服务器上执行，减轻每台服务器的压力，多台服务器共同完成工作任务，从而提高了数据的吞吐量。
 
-[![负载均衡](https://s3.jpg.cm/2020/07/24/UycmX.png)](https://ftp.bmp.ovh/imgs/2020/07/e98d8827a3710e8e.png)
-
+[![负载均衡](https://pic1.imgdb.cn/item/64423e840d2dde57774cca1a.png)](https://ftp.bmp.ovh/imgs/2020/07/e98d8827a3710e8e.png)
 # 2. Nginx的安装
 ## 2.1 下载nginx
 官网：http://nginx.org/</br>
