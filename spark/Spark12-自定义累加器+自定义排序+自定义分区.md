@@ -30,7 +30,6 @@ res: 10
 ```
 object AccumulatorTrapDemo {
   def main(args: Array[String]): Unit = {
-
     val session = SparkSession.builder.master("local[2]").getOrCreate
     val sc = session.sparkContext
     sc.setLogLevel("WARN")
@@ -47,11 +46,9 @@ object AccumulatorTrapDemo {
     // 因为没有Action操作，nums.map并没有被执行，因此此时累加器的值还是0
     println("num2 1: " + longAccumulator.value) // 0
 
-
     // 调用一次action操作，num.map得到执行，广播变量被改变
     nums2.count
     println("num2 2: " + longAccumulator.value) // 5
-
 
     // 又调用了一次Action操作，累加器所在的map又被执行了一次，所以累加器又被累加了一遍，就悲剧了
     nums2.count
@@ -66,17 +63,16 @@ object AccumulatorTrapDemo {
       longAccumulator.add(1)
       x
     }).cache // 注意这个地方进行了cache
-
-
     println("num3 1: " + longAccumulator.value) // 未执行action，0
 
     // 调用一次action操作，累加器被改变
     nums3.count
-    println("num3 2: " + longAccumulator.value)
+    println("num3 2: " + longAccumulator.value) // 5
 
     // 又调用了一次action操作，因为前一次调用count时num3已经被cache，num1.map不会被再执行一遍，所以这里的值还是5
     nums3.count
-    println("num3 3: " + longAccumulator.value)
+    println("num3 3: " + longAccumulator.value) // 5
+
 
     // ------------------------------- 在action算子中的使用 -------------------------------------------
     longAccumulator.reset()
@@ -84,7 +80,9 @@ object AccumulatorTrapDemo {
       longAccumulator.add(1)
     })
     // 因为是action操作，会被立即执行所以打印的结果是符合预期的
-    println("num4: " + longAccumulator.value)  // 5
+    println("num4: " + longAccumulator.value) // 5
+
+    session.stop()
   }
 }
 ```
