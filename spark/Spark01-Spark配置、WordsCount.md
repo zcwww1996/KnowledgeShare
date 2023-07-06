@@ -107,7 +107,7 @@ sc.textFile("hdfs://linux01:9000/test.txt").flatMap(_.split(" ")).map((_, 1)).re
 
 **提交wordCount程序的jar包到集群**
 
-[![QJXgO0.png](https://s2.ax1x.com/2019/12/06/QJXgO0.png "提交jar到集群")](https://s2.ax1x.com/2019/12/06/QJXgO0.png)
+[![QJXgO0.png](https://s2.ax1x.com/2019/12/06/QJXgO0.png "提交jar到集群")](https://telegraph-image-5x2.pages.dev/file/4400abb1e71bb266d9be8.png)
 
 ```bash
 /bin/spark-submit --master spark://linux01:7077,linux02:7077 --class cn.edu360.spark.day1.ScalaWordCount --total-executor-cores 2 /home/xiaoniu/original-HelloSpark2-1.0-SNAPSHOT.jar hdfs:/linux01:9000/words hdfs://linux01:9000/out

@@ -108,45 +108,53 @@ T表示可以与此对象进行比较的那些对象的类型。
 
 此接口只有一个方法compare，比较此对象与指定对象的顺序，如果该对象小于、等于或大于指定对象，则分别返回负整数、零或正整数。
 
+- **compareTo方法 直接 `this - that` 升序**
+    - **如果返回正数**，表示当前对象大于参数对象，那么当前对象会排在参数对象的后面，**左右的数进行交换**，也就是正序排序
+    - **如果返回负数**，表示当前对象小于参数对象，那么当前对象会排在参数对象的前面，**左右的数不进行交换**，也就是倒序排序
+
+
+- **compareTo方法 直接 `that - this` 降序**
+    - **如果返回正数**，表示当前对象小于参数对象，那么当前对象会排在参数对象的前面，**左右的数不进行交换**，也就是倒序排序
+    - **如果返回负数**，表示当前对象大于参数对象，那么当前对象会排在参数对象的后面，**左右的数进行交换**，也就是正序排序
+
 现在有两个Person类的对象，我们如何来比较二者的大小呢？我们可以通过让Person实现Comparable接口：
 
 ```java
-public class Person implements Comparable<Person>
-{
+import java.util.Arrays;
+
+public class Person implements Comparable<Person> {
     String name;
     int age;
-    public Person(String name, int age)
-    {
+
+    public Person(String name, int age) {
         super();
         this.name = name;
         this.age = age;
     }
-    public String getName()
-    {
+
+    public String getName() {
         return name;
     }
-    public int getAge()
-    {
+
+    public int getAge() {
         return age;
     }
+
     @Override
-    public int compareTo(Person p)
-    {
-        return this.age-p.getAge();
+    public int compareTo(Person p) {
+        return this.age - p.getAge();
     }
-    public static void main(String[] args)
-    {
-        Person[] people=new Person[]{new Person("xujian", 20),new Person("xiewei", 10)};
+
+    public static void main(String[] args) {
+        Person[] people = new Person[] { new Person("xujian", 20), new Person("xiewei", 10) };
         System.out.println("排序前");
-        for (Person person : people)
-        {
-            System.out.print(person.getName()+":"+person.getAge());
+        for (Person person : people) {
+            System.out.print(person.getName() + ":" + person.getAge());
         }
         Arrays.sort(people);
         System.out.println("\n排序后");
-        for (Person person : people)
-        {
-            System.out.print(person.getName()+":"+person.getAge());
+        for (Person person : people) {
+            System.out.print(person.getName() + ":" + person.getAge());
         }
     }
 }
