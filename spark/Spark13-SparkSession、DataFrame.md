@@ -1692,7 +1692,7 @@ dataset.na.fill(Map("colName1"->"value1","colName2"->"value2") ) 不同列空值
 
 2) **使用举例**
 
-我平时一般倾向于第三种join方式，也就是===
+我平时一般倾向于第2种join方式，也就是Seq
 
 ```scala
 // Joining df1 and df2 using the column "user_id"
@@ -1748,6 +1748,10 @@ joinDF1.join(joinDF2, Seq("id", "name"), "inner")
 
 ```scala
 joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id"))
+
+joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id") && joinDF1("userId") === joinDF2("userId"))
+
+joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id") and joinDF1("userId") === joinDF2("userId"))
 ```
 
 结果如下，  
