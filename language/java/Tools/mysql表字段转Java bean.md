@@ -18,8 +18,15 @@ import java.util.regex.Pattern;
 
 
 public class RsToBeanUtil {
-    // 根据类名将查询结果resultSet封装成对象
-    // 属性名必须严格遵守驼峰命名，该类会将属性驼峰转为数据库_ 去与数据库字段进行匹配
+
+    /**
+     * 类名将查询结果resultSet封装成对象
+     * 属性名必须严格遵守驼峰命名，该类会将属性驼峰转为数据库_ 去与数据库字段进行匹配
+     *
+     * @param rs 查询结果集
+     * @param t  要封装的对象
+     * @return 返回封装好的对象
+     */
     public static <T> T resultToBean(ResultSet rs, Class<T> t) {
         T result = null; // 封装数据完返回的Bean对象
 
@@ -30,10 +37,8 @@ public class RsToBeanUtil {
             Field[] fields = t.getDeclaredFields();
 
 
-            for (int i = 0; i < fields.length; i++) {
+            for (Field field : fields) {
                 // 取出属性
-                Field field = fields[i];
-
                 // 获取类属性名
                 String fieldName = field.getName();
 
@@ -47,53 +52,47 @@ public class RsToBeanUtil {
                 matcher.appendTail(sb);
                 String sqlName = sb.toString();
 
-//                System.out.println(sqlName);
-
                 // 用属性名得出set方法，set+将首字母大写
                 String setMethodName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
 
                 // 获取字段类型
                 String type = field.getType().toString();
 
-//                // 测试
-//                System.out.println(setMethodName);
-//                System.out.println(type);
-
                 // 通过调用set方法进行属性注入
-                if ("class java.lang.Integer".equals(type)) {
-                    // 类型匹配 则获取对应属性的set方法    方法名，类型
-                    Method method = t.getMethod(setMethodName, Integer.class);
-                    // 执行set方法    被执行的对象，需要注入的数据
-                    method.invoke(result, rs.getObject(sqlName));
-                } else if ("class java.lang.String".equals(type)) {
-                    Method method = t.getMethod(setMethodName, String.class);
-                    method.invoke(result, rs.getObject(sqlName));
-                } else if ("class java.lang.Double".equals(type)) {
-                    Method method = t.getMethod(setMethodName, Double.class);
-                    method.invoke(result, rs.getObject(sqlName));
-                } else if ("class java.sql.Timestamp".equals(type)) {
-                    Method method = t.getMethod(setMethodName, Timestamp.class);
-                    method.invoke(result, rs.getObject(sqlName));
-                } else {
-                    throw new RuntimeException("类型异常");
+                switch (type) {
+                    case "class java.lang.Integer": {
+                        // 类型匹配 则获取对应属性的set方法    方法名，类型
+                        Method method = t.getMethod(setMethodName, Integer.class);
+                        // 执行set方法    被执行的对象，需要注入的数据
+                        method.invoke(result, rs.getInt(sqlName));
+                        break;
+                    }
+                    case "class java.lang.String": {
+                        Method method = t.getMethod(setMethodName, String.class);
+                        method.invoke(result, rs.getString(sqlName));
+                        break;
+                    }
+                    case "class java.lang.Double": {
+                        Method method = t.getMethod(setMethodName, Double.class);
+                        method.invoke(result, rs.getDouble(sqlName));
+                        break;
+                    }
+                    case "class java.sql.Timestamp": {
+                        Method method = t.getMethod(setMethodName, Timestamp.class);
+                        method.invoke(result, rs.getTimestamp(sqlName));
+                        break;
+                    }
+                    default:
+                        throw new RuntimeException("类型异常");
                 }
             }
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         // 返回该对象
         return result;
     }
-}
 
 ```
 
