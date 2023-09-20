@@ -1,13 +1,24 @@
 [TOC]
-# 1. spark-submit提交程序包含第三方jar文件
 
-## 1.1 第一种方式：打包到jar应用程序
+spark任务提交有三种方式
+
+1：通过local方式提交
+
+2：通过spark-submit脚本提交到集群
+
+3：通过spark提交的API SparkLauncher提交到集群，这种方式可以将提交过程集成到我们的spring工程中，更加灵活
+
+# 1. spark-submit提交
+
+## 1.1 spark-submit提交程序包含第三方jar文件
+
+### 1.1.1 第一种方式：打包到jar应用程序
 
 **操作：** 将第三方jar文件打包到最终形成的spark应用程序jar文件中
 
 **应用场景：** 第三方jar文件比较小，应用的地方比较少
 
-## 1.2 第二种方式：spark-submit 参数 --jars
+### 1.1.2 第二种方式：spark-submit 参数 --jars
 
 **操作：** 使用spark-submit提交命令的参数: --jars
 
@@ -25,7 +36,7 @@ $ bin/spark-shell --jars /opt/cdh-5.3.6/hive/lib/mysql-connector-java-5.1.27-bin
 
 **应用场景：** 要求本地必须要有对应的jar文件
 
-## 1.3 第三种方式：spark-submit 参数 --packages
+### 1.1.3 第三种方式：spark-submit 参数 --packages
 
 **操作：** 使用spark-submit提交命令的参数: --packages
 
@@ -42,7 +53,7 @@ $ bin/spark-shell --packages  mysql:mysql-connector-java:5.1.27 --repositories h
 
 **应用场景：** 本地可以没有，集群中服务需要该包的的时候，都是从给定的maven地址，直接下载
 
-## 1.4 第四种方式：添加到spark的环境变量
+### 1.1.4 第四种方式：添加到spark的环境变量
 
 **操作：** 更改Spark的配置信息:SPARK\_CLASSPATH, 将第三方的jar文件添加到SPARK\_CLASSPATH环境变量中
 
@@ -64,11 +75,11 @@ $ cp /opt/cdh-5.3.6/hive/lib/mysql-connector-java-5.1.27-bin.jar ./external_jars
 
 备注：（只针对spark on yarn(cluster)模式）
 
-## 1.5 spark on yarn(cluster)，依赖第三方jar文件
+### 1.1.5 spark on yarn(cluster)，依赖第三方jar文件
 
 **最终解决方案：**<br> 将第三方的jar文件copy到`${HADOOP_HOME}/share/hadoop/common/lib`文件夹中(Hadoop集群中所有机器均要求copy)
 
-# 2. spark-submit提交程序携带外部配置文件
+## 1.2 spark-submit提交程序携带外部配置文件
 
 spark开发时，有些时候需要动态加载jar外部资源⽂件，需要在driver访问。就需要通过`--files`把外部资源⽂件加载到classpath路径，如下所示
 
@@ -88,7 +99,7 @@ spark开发时，有些时候需要动态加载jar外部资源⽂件，需要在
         --files /home/zhangchao/testData/daas/cityList/daasCityList_user_app.conf \
         ../daasNG-1.1-SNAPSHOT.jar
 ```
-## 2.1 读取hdfs临时目录
+### 1.2.1 读取hdfs临时目录
 `--files`会把本地文件`/home/zhangchao/testData/daas/cityList/daasCityList_user_app.conf`上传到hdfs临时目录` hdfs://10.244.12.215:8020/user/zhangchao/.sparkStaging/application_1578647131225_1066324/daasCityList_user_app.conf`，要想读取"daasCityList_user_app.conf"文件，关键在于获取hdfs对应路径
 
 ```scala
@@ -119,7 +130,7 @@ import scala.util.Try
 ```
 
 
-## 2.2 读取ApplicationMaster本地路径
+### 1.2.2 读取ApplicationMaster本地路径
 在cluster模式下直接读取ApplicationMaster的工作路径（本地路径），`--file`里面的文件会复制到该路径，需要如下代码：
 
 ```Scala
@@ -263,16 +274,16 @@ val filePath = System.getProperty("user.dir")
 
 
 
-# 3. spark作业配置与submit参数
+## 1.3 spark作业配置与submit参数
 
-## 3.1 spark作业配置的三种方式
+### 1.3.1 spark作业配置的三种方式
 1. 读取指定配置文件，默认为conf/spark-defaults.conf。
 2. 在程序中的SparkConf中指定，如conf.setAppName(“myspark”)。
 3. spark-submit中使用参数。
 
 这三种方式的优先级为 SparkConf > spark-submit > 配置文件。可以在spark-submit中使用–verbos参数查看起作用的配置来自上述哪种方式。
 
-## 3.2 spark-submit参数说明
+### 1.3.2 spark-submit参数说明
 使用spark-submit提交spark作业的时候有许多参数可供我们选择，这些参数有的用于作业优化，有的用于实现某些功能，所有的参数列举如下：
 
 
@@ -310,3 +321,141 @@ val filePath = System.getProperty("user.dir")
 | --archives | 需要添加到executor执行目录下的归档文件列表，逗号分隔。**（仅yarn）** |
 | --principal | 运行于secure hdfs时用于登录到KDC的principal。**（仅yarn）** |
 | --keytab | 包含keytab文件的全路径。**（仅yarn）** |
+
+# 2. SparkLauncher提交
+
+SparkLauncher也提供了两种方式提交任务
+
+## 2.1 launch方式
+
+SparkLauncher实际上是根据JDK自带的ProcessBuilder构造了一个UNIXProcess子进程提交任务，提交的形式跟spark-submit一样。这个子进程会以阻塞的方式等待程序的运行结果。简单来看就是拼接spark-submit命令，并以子进程的方式启动。
+
+`process.getInputStream()实际上对应linux进程的标准输出stdout`<br> `process.getErrorStream()实际上对应linux进程的错误信息stderr`<br> `process.getOutputStream()实际上对应linux进程的输入信息stdin`<br>
+
+```java
+
+    public void sparkRun() {
+
+        try {
+            HashMap env = new HashMap();
+            
+            env.put("HADOOP_CONF_DIR", CommonConfig.HADOOP_CONF_DIR);
+            env.put("JAVA_HOME", CommonConfig.JAVA_HOME);
+
+            SparkLauncher handle = new SparkLauncher(env)
+                    .setSparkHome(SparkConfig.SPARK_HOME)
+                    .setAppResource(CommonConfig.ALARM_JAR_PATH)
+                    .setMainClass(CommonConfig.ALARM_JAR_MAIN_CLASS)
+                    .setMaster("spark://" + SparkConfig.SPARK_MASTER_HOST + ":" + SparkConfig.SPARK_MASTER_PORT)
+                    .setDeployMode(SparkConfig.SPARK_DEPLOY_MODE)
+                    .setVerbose(SparkConfig.SPARK_VERBOSE)
+                    .setConf("spark.app.id", CommonConfig.ALARM_APP_ID)
+                    .setConf("spark.driver.memory", SparkConfig.SPARK_DRIVER_MEMORY)
+                    .setConf("spark.rpc.message.maxSize", SparkConfig.SPARK_RPC_MESSAGE_MAXSIZE)
+                    .setConf("spark.executor.memory", SparkConfig.SPARK_EXECUTOR_MEMORY)
+                    .setConf("spark.executor.instances", SparkConfig.SPARK_EXECUTOR_INSTANCES)
+                    .setConf("spark.executor.cores", SparkConfig.SPARK_EXECUTOR_CORES)
+                    .setConf("spark.default.parallelism", SparkConfig.SPARK_DEFAULT_PARALLELISM)
+                    .setConf("spark.driver.allowMultipleContexts", SparkConfig.SPARK_DRIVER_ALLOWMULTIPLECONTEXTS)
+                    .setVerbose(true);
+
+            Process process = handle.launch();
+            InputStreamRunnable inputStream = new InputStreamRunnable(process.getInputStream(), "alarm task input");
+            ExecutorUtils.getExecutorService().submit(inputStream);
+            InputStreamRunnable errorStream = new InputStreamRunnable(process.getErrorStream(), "alarm task error");
+            ExecutorUtils.getExecutorService().submit(errorStream);
+
+            logger.info("Waiting for finish...");
+            int exitCode = process.waitFor();
+            logger.info("Finished! Exit code:" + exitCode);
+        } catch (Exception e) {
+            logger.error("submit spark task error", e);
+        }
+    }
+
+```
+
+### 2.1.1 运行过程示意图
+
+[![SparkLauncher launch启动示意图](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda8361ddd4796~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://pic.imgdb.cn/item/64dc8190661c6c8e54e2c0f3.webp)
+
+1. 用户程序启动（SparkLauncher，非驱动程序）时会在当前节点上启动一个SparkSubmit进程，并将驱动程序（即spark任务）发送到任意一个工作节点上，在工作节点上启动DriverWrapper进程
+2. 驱动程序会从集群管理器（standalone模式下是master服务器）申请执行器资源
+3. 集群管理器反馈执行器资源给驱动器
+4. 驱动器Driver将任务发送到执行器节点执行
+
+### 2.1.2 spark首页监控
+
+可以看到启动的Driver
+
+[![](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda8361487508d~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://pic.imgdb.cn/item/64dc8190661c6c8e54e2c14f.webp)
+
+进一步可以查看到执行器情况
+
+[![](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda8361496749e~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://pic.imgdb.cn/item/64dc8190661c6c8e54e2c18c.webp)
+
+### 2.1.3 通过服务器进程查看各进程之间的关系
+
+[![](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda8361e1757e9~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://pic.imgdb.cn/item/64dc8190661c6c8e54e2c1c9.webp)
+
+[![](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda8361dd82601~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://pic.imgdb.cn/item/64dc8190661c6c8e54e2c214.webp)
+
+[![](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda83653126f05~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://s1.ax1x.com/2023/08/16/pPlAVRs.jpg)
+
+[![](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/7/10/16bda83652f7d6ce~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp)](https://s1.ax1x.com/2023/08/16/pPlAEGj.jpg)
+
+## 2.2 startApplication方式
+
+```java
+    public void sparkRun() {
+
+        try {
+            HashMap env = new HashMap();
+            
+            env.put("HADOOP_CONF_DIR", CommonConfig.HADOOP_CONF_DIR);
+            env.put("JAVA_HOME", CommonConfig.JAVA_HOME);
+
+            CountDownLatch countDownLatch = new CountDownLatch(1);
+            SparkAppHandle handle = new SparkLauncher(env)
+                    .setSparkHome(SparkConfig.SPARK_HOME)
+                    .setAppResource(CommonConfig.ALARM_JAR_PATH)
+                    .setMainClass(CommonConfig.ALARM_JAR_MAIN_CLASS)
+                    .setMaster("spark://" + SparkConfig.SPARK_MASTER_HOST + ":" + SparkConfig.SPARK_MASTER_PORT)
+
+                    .setDeployMode(SparkConfig.SPARK_DEPLOY_MODE)
+                    .setVerbose(SparkConfig.SPARK_VERBOSE)
+                    .setConf("spark.app.id", CommonConfig.ALARM_APP_ID)
+                    .setConf("spark.driver.memory", SparkConfig.SPARK_DRIVER_MEMORY)
+                    .setConf("spark.rpc.message.maxSize", SparkConfig.SPARK_RPC_MESSAGE_MAXSIZE)
+                    .setConf("spark.executor.memory", SparkConfig.SPARK_EXECUTOR_MEMORY)
+                    .setConf("spark.executor.instances", SparkConfig.SPARK_EXECUTOR_INSTANCES)
+                    .setConf("spark.executor.cores", SparkConfig.SPARK_EXECUTOR_CORES)
+                    .setConf("spark.default.parallelism", SparkConfig.SPARK_DEFAULT_PARALLELISM)
+                    .setConf("spark.driver.allowMultipleContexts", SparkConfig.SPARK_DRIVER_ALLOWMULTIPLECONTEXTS)
+                    .setVerbose(true).startApplication(new SparkAppHandle.Listener() {
+                        
+                        @Override
+                        public void stateChanged(SparkAppHandle sparkAppHandle) {
+                            if (sparkAppHandle.getState().isFinal()) {
+                                countDownLatch.countDown();
+                            }
+                            System.out.println("state:" + sparkAppHandle.getState().toString());
+                        }
+
+                        @Override
+                        public void infoChanged(SparkAppHandle sparkAppHandle) {
+                            System.out.println("Info:" + sparkAppHandle.getState().toString());
+                        }
+                    });
+            logger.info("The task is executing, please wait ....");
+            
+            countDownLatch.await();
+            logger.info("The task is finished!");
+        } catch (Exception e) {
+            logger.error("submit spark task error", e);
+        }
+    }
+
+```
+
+这种模式下，yarn集群和local实测可以提交成功，在standalone模式下据说提交失败，未测试
