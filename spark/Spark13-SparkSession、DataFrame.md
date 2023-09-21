@@ -13,7 +13,7 @@ val parquetFile = spark.read.parquet("/user/ss_deploy/workspace/ss-ng/beijing/ce
 # 2. 创建DataFrame
 ## 2.1 第一种：通过Seq生成
 
-**仅支持多列，单列情况可以利用Seq对偶元组生成dataframe后drop一列**
+**仅支持多列，单列情况可以利用Seq对偶元组生成dataframe后drop一列或者通过方法3**
 
 ```scala
 val spark = SparkSession
@@ -33,6 +33,9 @@ val df1 = spark.createDataFrame(seq).toDF("name", "age", "phone")
 // 方法2：
 val df2 = seq.toDF("name", "age", "phone")
 
+// 方法3：支持单列
+val rdd = spark.sparkContext.parallelize(seq)
+val df = rdd.toDF("name", "age", "phone") column
 
 df1.show()
 ```
@@ -110,7 +113,7 @@ object Schema extends Serializable {
 
 
 > ps: 输出csv文件
-> 
+>
 > ```scala
 > frame_str.write.option("delimiter", "|").option("nullValue", "?").csv(output_csv)
 > ```
@@ -214,12 +217,12 @@ Spark SQL和DataFrames支持的数据格式如下：
 - **数值类型**
   - ByteType: 代表1字节有符号整数. 数值范围： -128 到 127.
   - ShortType: 代表2字节有符号整数. 数值范围： -32768 到 32767.
-  - IntegerType: 代表4字节有符号整数. 数值范围： -2147483648 t到 2147483647. 
-  - LongType: 代表8字节有符号整数. 数值范围： -9223372036854775808 到 9223372036854775807. 
+  - IntegerType: 代表4字节有符号整数. 数值范围： -2147483648 t到 2147483647.
+  - LongType: 代表8字节有符号整数. 数值范围： -9223372036854775808 到 9223372036854775807.
   - FloatType: 代表4字节单精度浮点数。
   - DoubleType: 代表8字节双精度浮点数。
-  - DecimalType: 表示任意精度的有符号十进制数。内部使用java.math.BigDecimal.A实现。 
-  - BigDecimal：由一个任意精度的整数非标度值和一个32位的整数组成。 
+  - DecimalType: 表示任意精度的有符号十进制数。内部使用java.math.BigDecimal.A实现。
+  - BigDecimal：由一个任意精度的整数非标度值和一个32位的整数组成。
 - String类型
   - StringType: 表示字符串值。
 - Binary类型
@@ -231,15 +234,15 @@ Spark SQL和DataFrames支持的数据格式如下：
   - DateType: 代表包含的年、月、日的日期值
 
 
-- **复杂类型** 
-  - ArrayType(elementType, containsNull): 代表包含一系列类型为elementType的元素。如果在一个将ArrayType值的元素可以为空值，containsNull指示是否允许为空。 
-  - MapType(keyType, valueType, valueContainsNull): 代表一系列键值对的集合。key不允许为空，valueContainsNull指示value是否允许为空 
-  - StructType(fields): 代表带有一个StructFields（列）描述结构数据。 
+- **复杂类型**
+  - ArrayType(elementType, containsNull): 代表包含一系列类型为elementType的元素。如果在一个将ArrayType值的元素可以为空值，containsNull指示是否允许为空。
+  - MapType(keyType, valueType, valueContainsNull): 代表一系列键值对的集合。key不允许为空，valueContainsNull指示value是否允许为空
+  - StructType(fields): 代表带有一个StructFields（列）描述结构数据。
   - StructField(name, dataType, nullable): 表示StructType中的一个字段。name表示列名、dataType表示数据类型、nullable指示是否允许为空。
 
 Spark SQL所有的数据类型在 org.apache.spark.sql.types 包内。不同语言访问或创建数据类型方法不一样：
 
-Scala 代码中添加`import org.apache.spark.sql.types._`，再进行数据类型访问或创建操作。 
+Scala 代码中添加`import org.apache.spark.sql.types._`，再进行数据类型访问或创建操作。
 
 
 Java 可以使用 org.apache.spark.sql.types.DataTypes 中的工厂方法
@@ -576,9 +579,9 @@ val sef = Seq("label", "AMOUNT")<br>
 (也可以用Array,ArrayBuffer)
 
 - 方法1:<br>
-`select(sef.head, sef.tail: _*)`
+  `select(sef.head, sef.tail: _*)`
 - 方法2:<br>
-`select(sef.map(data1.col()): _*)`
+  `select(sef.map(data1.col()): _*)`
 
 ```scala
 val sef = Seq("label", "AMOUNT")
@@ -611,19 +614,19 @@ data1.select(sef.map(data1.col(_)): _*).show
 
 > ==**补充1**==：<br>
 > **select方法**
-> 
+>
 > ```Scala
 > def select(cols : org.apache.spark.sql.Column*) : org.apache.spark.sql.DataFrame = { /* compiled code */ }
 > ```
 > 针对传入的是字符，必须是 (col=“字符”, cols=Seq(“字符列表”): _*)
-> 
+>
 > 参考：https://n3xtchen.github.io/n3xtchen/scala/2018/01/22/scala-spark-dataframe-dataframeselect-multiple-columns-given-a-sequence-of-column-names
 
 > ==**补充2**==：<br>
 > `_*`的作用：不定参数列表/变量声明中的模式
-> 
+>
 > **1) 变长参数**
-> 
+>
 > 定义一个变长参数的方法sum，然后计算1-5的和，可以写为
 > ```scala
 > scala> def sum(args: Int*) = {
@@ -636,9 +639,9 @@ data1.select(sef.map(data1.col(_)): _*).show
 > scala> val s = sum(1,2,3,4,5)
 > s: Int = 15
 > ```
-> 
+>
 > 但是如果使用这种方式就会报错
-> 
+>
 > ```scala
 > scala> val s = sum(1 to 5)
 > <console>:12: error: type mismatch;
@@ -647,18 +650,18 @@ data1.select(sef.map(data1.col(_)): _*).show
 >        val s = sum(1 to 5)
 >                      ^
 > ```
-> 
+>
 > 这种情况必须在后面写上`: _*`将1 to 5转化为参数序列
-> 
+>
 > ```scala
 > scala> val s = sum(1 to 5: _*)
 > s: Int = 15
 > ```
-> 
+>
 > **2) 变量声明中的模式**
-> 
+>
 > 例如，下面代码分别将arr中的第一个和第二个值赋给first和second
-> 
+>
 > ```scala
 > scala> val arr = Array(1,2,3,4,5)
 > arr: Array[Int] = Array(1, 2, 3, 4, 5)
@@ -1097,10 +1100,10 @@ val lines = json.filter(row => !row.isNullAt(2)).select("outline").rdd.map(r => 
 
 ### 6.2.1 `show`：展示数据
 
-以表格的形式在输出中展示`jdbcDF`中的数据，类似于`select * from spark_sql_test`的功能。  
+以表格的形式在输出中展示`jdbcDF`中的数据，类似于`select * from spark_sql_test`的功能。
 
 `show`方法有四种调用方式，分别为：<br>
-**（1）`show`**，只显示前20条记录。  
+**（1）`show`**，只显示前20条记录。
 
 示例：
 ```scala
@@ -1120,7 +1123,7 @@ jdbcDF.show(3)
 结果：<br>
 ![](https://img-blog.csdn.net/20161012231534486)
 
-**（3）`show(truncate: Boolean)`**，是否最多只显示20个字符，默认为`true`。  
+**（3）`show(truncate: Boolean)`**，是否最多只显示20个字符，默认为`true`。
 
 示例：
 ```scala
@@ -1148,7 +1151,7 @@ jdbcDF.show(3, false)
 jdbcDF.collect()
 ```
 
-结果如下，结果数组包含了`jdbcDF`的每一条记录，每一条记录由一个`GenericRowWithSchema`对象来表示，可以存储字段名及字段值。  
+结果如下，结果数组包含了`jdbcDF`的每一条记录，每一条记录由一个`GenericRowWithSchema`对象来表示，可以存储字段名及字段值。
 
 ![](https://img-blog.csdn.net/20161012231645167)
 
@@ -1166,7 +1169,7 @@ jdbcDF.collectAsList()
 
 ### 6.2.4 `describe(cols: String*)`：获取指定字段的统计信息
 
-　这个方法可以动态的传入一个或多个`String`类型的字段名，结果仍然为`DataFrame`对象，用于统计数值类型字段的统计值，比如`count, mean, stddev, min, max`等。  
+这个方法可以动态的传入一个或多个`String`类型的字段名，结果仍然为`DataFrame`对象，用于统计数值类型字段的统计值，比如`count, mean, stddev, min, max`等。
 
 使用方法如下，其中`c1`字段为字符类型，`c2`字段为整型，`c4`字段为浮点型
 
@@ -1183,9 +1186,9 @@ jdbcDF .describe("c1" , "c2", "c4" ).show()
 　　（1）`first`获取第一行记录  
 　　（2）`head`获取第一行记录，`head(n: Int)`获取前n行记录  
 　　（3）`take(n: Int)`获取前n行数据  
-　　（4）`takeAsList(n: Int)`获取前n行数据，并以`List`的形式展现 
+　　（4）`takeAsList(n: Int)`获取前n行数据，并以`List`的形式展现
 
-以`Row`或者`Array[Row]`的形式返回一行或多行数据。`first`和`head`功能相同。  
+以`Row`或者`Array[Row]`的形式返回一行或多行数据。`first`和`head`功能相同。
 
 `take`和`takeAsList`方法会将获得到的数据返回到Driver端，所以，使用这两个方法时需要注意数据量，以免Driver发生`OutOfMemoryError`
 
@@ -1241,7 +1244,7 @@ data.groupBy("name").avg("score").show
 
 1) **使用方法**
 
-dataset 聚合函数api，有多种列名的传入方式，使用as，可是重新命名，所有计算的列sum、avg或者distinct都会成为新的列，默认列名sum(columnName)，常常跟在groupBy算子后使用  
+dataset 聚合函数api，有多种列名的传入方式，使用as，可是重新命名，所有计算的列sum、avg或者distinct都会成为新的列，默认列名sum(columnName)，常常跟在groupBy算子后使用
 
 ```scala
  dataset.agg(sum(dataset("columnsName")),sum(dataset("")).as("newName"))
@@ -1377,7 +1380,11 @@ jdbcDF.orderBy(jdbcDF("c4").desc).show(false)
 需要导入 import spark.implicits._
 jdbcDF.orderBy($"c4".desc,$"c2").show(false)
 ```
-
+通过列表排序
+```scala
+val strings = Array("userId", "geoHashn")
+dataSet.orderBy(strings.head, strings.tail: _*).show()
+```
 
 ## 7.6 hint
 
@@ -1433,7 +1440,7 @@ df.select(bround(col("distance") / col("travelTime"),scale=4).alias("speed")).sh
 ```
 
 > decimal(18,4)中的“18”指的是整数部分加小数部分的总长度，也即插入的数字整数部分不能超过“18-4”即14位，否则不能成功插入，会报超出范围的错误。
-> 
+>
 > “4”表示小数部分的位数，如果插入的值未指定小数部分或者小数部分不足两位则会自动补到4位小数，若插入的值小数部分超过了4位则会发生截断，截取前4位小数。
 ## 7.9 rollup、cube
 
@@ -1478,8 +1485,8 @@ dataset.drop(personsDS("name"))
 
 ```scala
  val cols = Array("name","userID")
- dataset.dropDuplicates(cols)
- dataset.dropDuplicates("name")
+dataset.dropDuplicates(cols)
+dataset.dropDuplicates("name")
  ```
 
 `def dropDuplicates(colNames: Seq[String])`
@@ -1491,17 +1498,17 @@ dataset.drop(personsDS("name"))
 
 ```scala
 val row1 = List("wq",22,15)
-      val row2 = List("wq",12,15)
-      val row3 = List("tom",12,15)
-      import spark.implicits._
-      val dataRDD =  spark.sparkContext.parallelize(List(row1,row2,row3))
-      case class User(name:String,age:Int,length:Int)
-      val df = dataRDD.map(x=>User(x(0).toString,x(1).toString.toInt,x(2).toString.toInt))
-      val ds = df.toDS()
-      val cols = Array("age","length")
-      ds.dropDuplicates(cols).show
-      println("-------")
-      ds.distinct().show()
+val row2 = List("wq",12,15)
+val row3 = List("tom",12,15)
+import spark.implicits._
+val dataRDD =  spark.sparkContext.parallelize(List(row1,row2,row3))
+case class User(name:String,age:Int,length:Int)
+val df = dataRDD.map(x=>User(x(0).toString,x(1).toString.toInt,x(2).toString.toInt))
+val ds = df.toDS()
+val cols = Array("age","length")
+ds.dropDuplicates(cols).show
+println("-------")
+ds.distinct().show()
 ```
 
 [![](https://img-blog.csdn.net/20180524095356971)](https://z3.ax1x.com/2021/06/28/RNH3lt.png)
@@ -1530,10 +1537,10 @@ import org.apache.spark.sql.expressions.Window
 import spark.implicits._
 
 val lastPassCar = carDF.withColumn("num",
-   row_number().over(
-     Window.partitionBy($"carNum")
-           .orderBy($"capTime" desc)
-   )
+  row_number().over(
+    Window.partitionBy($"carNum")
+            .orderBy($"capTime" desc)
+  )
 ).where($"num" === 1).drop($"num")
 lastPassCar.explain()
 lastPassCar.show()
@@ -1541,15 +1548,15 @@ lastPassCar.show()
 
 ```scala
     +---+------+-----+--------+
-    | id|carNum|orgId| capTime|
-    +---+------+-----+--------+
-    |  5|粤A321|    3|11:40:10|
-    |  6|京A321|    3|11:50:10|
-    |  4|云A321|    2|10:30:10|
-    +---+------+-----+--------+
+| id|carNum|orgId| capTime|
++---+------+-----+--------+
+|  5|粤A321|    3|11:40:10|
+        |  6|京A321|    3|11:50:10|
+        |  4|云A321|    2|10:30:10|
+        +---+------+-----+--------+
 ```
 
-    
+
 ## 7.12 describe
 
 1) **使用说明**
@@ -1581,24 +1588,24 @@ ds.describe().show
 
 > **补充**:<br>
 > **==DataFrame的repartition、partitionBy、coalesce区别==**
-> 
+>
 > - (1) `repartition(numPartitions, *cols)`<br> 重新分区(内存中，用于并行度)，用于分区数变多，设置变小一般也只是action算子时才开始shuffing;而且当参数numPartitions小于当前分区个数时会保持当前分区个数等于失效。
-> 
+>
 > ```Scala
 > df.reparition(3, 'user_id, 'imei_tac)
 > 或
 > import spark.implicits._
 > df.reparition(3, $"user_id", $"imei_tac")
 > ```
-> 
+>
 > - (2) `partitionBy(*cols)`<br> 根据指定列进行分区（主要磁盘存储，影响生成磁盘文件数量，后续再从存储中载入影响并行度），相似的在一个区，并没有参数来指定多少个分区，而且仅用于PairRdd
-> 
+>
 > ```scala
 > df.toDF("month","day","value").write.partitionBy("month","day")
 > ```
-> 
+>
 > - (3) `coalesce(numPartitions)`<br> 联合分区，用于将分区变少。不能指定按某些列联合分区
-> 
+>
 > ```scala
 > df.coalesce(1).rdd.getNumPartitions()
 > ```
@@ -1606,9 +1613,9 @@ ds.describe().show
 
 2) **使用举例**
 
-coalesce适合用在filterBy之后，避免数据倾斜，下面给出相关的使用文章：  
+coalesce适合用在filterBy之后，避免数据倾斜，下面给出相关的使用文章：
 
-https://blog.csdn.net/u013514928/article/details/52789169  
+https://blog.csdn.net/u013514928/article/details/52789169
 
 ## 7.14 filter
 
@@ -1616,7 +1623,7 @@ https://blog.csdn.net/u013514928/article/details/52789169
 
 filter 参数传递有三种方式：spark方式，sql方式，判断方法
 
-2) **使用举例**  
+2) **使用举例**
 
 ```scala
 dss.filter(dss("age")>15)
@@ -1647,7 +1654,7 @@ checkpoint，rdd或者dataset磁盘存储，用于比较关键的部分的数据
 
 2) **使用举例**
 
-[spark中checkpoint的使用](https://blog.csdn.net/qq_20641565/article/details/76223002)  
+[spark中checkpoint的使用](https://blog.csdn.net/qq_20641565/article/details/76223002)
 
 ## 7.17 Na
 
@@ -1663,12 +1670,12 @@ drop、fill、replace
 ```scala
 dataset.na.drop() 过滤包含空值的行,去除null和NaN
 dataset.na.drop(Array("colName","colName"))  删除某些列是空值的行
-dataset.na.drop(10，Array("colName"))  删除某一列的值低于10的行
+        dataset.na.drop(10，Array("colName"))  删除某一列的值低于10的行
 ```
 
 ```scala
 dataset.na.fill("value") 填充所有空值
-dataset.na.fill(value="fillValue",cols=Array("colName1","colName2") ) 填充某几列空值
+        dataset.na.fill(value="fillValue",cols=Array("colName1","colName2") ) 填充某几列空值
 ```
 
 ```scala
@@ -1688,28 +1695,28 @@ dataset.na.fill(Map("colName1"->"value1","colName2"->"value2") ) 不同列空值
 
 重点来了。在`SQL`语言中用得很多的就是`join`操作，DataFrame中同样也提供了`join`的功能。
 
-接下来隆重介绍`join`方法。在DataFrame中提供了六个重载的`join`方法。  
+接下来隆重介绍`join`方法。在DataFrame中提供了六个重载的`join`方法。
 
 2) **使用举例**
 
-我平时一般倾向于第三种join方式，也就是===
+我平时一般倾向于第2种join方式，也就是Seq
 
 ```scala
 // Joining df1 and df2 using the column "user_id"
 df1.join(df2, "user_id")
- 
+
 // Joining df1 and df2 using the columns "user_id" and "user_name"
 df1.join(df2, Seq("user_id", "user_name"))
- 
+
 // The following two are equivalent:
 df1.join(df2, $"df1Key" === $"df2Key")
 df1.join(df2).where($"df1Key" === $"df2Key")
- 
+
 // Scala:
 import org.apache.spark.sql.functions._
 df1.join(df2, $"df1Key" === $"df2Key", "outer")
  ```
- 
+
 
 **（1）笛卡尔积**
 
@@ -1748,6 +1755,10 @@ joinDF1.join(joinDF2, Seq("id", "name"), "inner")
 
 ```scala
 joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id"))
+
+joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id") && joinDF1("userId") === joinDF2("userId"))
+
+joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id") and joinDF1("userId") === joinDF2("userId"))
 ```
 
 结果如下，  
@@ -1770,7 +1781,7 @@ joinDF1.join(joinDF2 , joinDF1("id" ) === joinDF2( "t1_id"), "inner")
 2) **使用举例**
 
 [![](https://img-blog.csdn.net/20180525105218748?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3UwMTM1NjA5MjU=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70)](https://z3.ax1x.com/2021/06/28/RNHfh9.png)
-  
+
 
 ## 7.20 apply、col
 
@@ -1788,7 +1799,7 @@ public Column apply(String colName)
 public Column col(String colName)
 ```
 
-  
+
 
 ## 7.21 groupByKey
 
@@ -1831,12 +1842,12 @@ personsDS.union(personsDS)
 
 ```Java
 public Dataset<T> sample(boolean withReplacement,
-                         double fraction,
-                         long seed)
+        double fraction,
+        long seed)
 ```
 
 
-withReplacement是建立不同的采样器；fraction为采样比例；seed为随机生成器的种子  
+withReplacement是建立不同的采样器；fraction为采样比例；seed为随机生成器的种子
 
 2) **使用举例**
 
@@ -1853,7 +1864,7 @@ dataset.sample(false,0.2,100);
 
 ```Java
 public Dataset<T>[] randomSplit(double[] weights,
-                                long seed)
+        long seed)
 ```
 
 2) **使用举例**
@@ -1874,14 +1885,14 @@ Dataset<Class> [] randomSplitDs = dataset.randomSplit(weights,100);
 
 ```scala
 def doubleFunc(iter: Iterator[Int]) : Iterator[(Int,Int)] = {
-    var res = List[(Int,Int)]()
-    while (iter.hasNext)
-    {
-      val cur = iter.next;
-      res .::= (cur,cur*2)
-    }
-    res.iterator
+  var res = List[(Int,Int)]()
+  while (iter.hasNext)
+  {
+    val cur = iter.next;
+    res .::= (cur,cur*2)
   }
+  res.iterator
+}
 val result = a.mapPartitions(doubleFunc)
 ```
 
@@ -1921,9 +1932,9 @@ df.select("userId", "poiId", "poiType", "geoHashCounter","coreUser", "coreUser10
 |userId              |poiId|poiType|geoHashCounter              |coreUser|coreUser10|
 +--------------------+-----+-------+----------------------------+--------+----------+
 |-9222835108189541158|0    |0      |{wx4eh2n -> 1}              |true    |true      |
-|-9222835108189541158|1    |0      |{wx4sxw8 -> 1}              |true    |true      |
-|-9222835108189541158|2    |0      |{wx4uhpw -> 1}              |true    |true      |
-|-9222835108189541158|3    |0      |{wx4svfx -> 1, wx4svfq -> 3}|true    |true      |
+        |-9222835108189541158|1    |0      |{wx4sxw8 -> 1}              |true    |true      |
+        |-9222835108189541158|2    |0      |{wx4uhpw -> 1}              |true    |true      |
+        |-9222835108189541158|3    |0      |{wx4svfx -> 1, wx4svfq -> 3}|true    |true      |
 ```
 
 
@@ -1936,10 +1947,10 @@ df.select($"*", explode($"geoHashCounter").as(Seq("geohash","count"))).where("us
 |              userId|poiId|poiType|  zone|      weight|      geoHashCounter|coreUser|coreUser10|    Weight10|geohash|count|
 +--------------------+-----+-------+------+------------+--------------------+--------+----------+------------+-------+-----+
 |-9223263032473946623|    6|      0|110113|[1.76987324]|      [wx4um81 -> 1]|    true|      true|[1.79549226]|wx4um81|    1|
-|-9223263032473946623|    7|      0|110113|[1.76987324]|      [wx4uq33 -> 1]|    true|      true|[1.79549226]|wx4uq33|    1|
-|-9223263032473946623|    8|      0|110113|[1.76987324]|      [wx4umcr -> 1]|    true|      true|[1.79549226]|wx4umcr|    1|
-|-9223263032473946623|    9|      0|110113|[1.76987324]|[wx4umfs -> 1, wx...|    true|      true|[1.79549226]|wx4umfs|    1|
-|-9223263032473946623|    9|      0|110113|[1.76987324]|[wx4umfs -> 1, wx...|    true|      true|[1.79549226]|wx4umfd|    1|
+        |-9223263032473946623|    7|      0|110113|[1.76987324]|      [wx4uq33 -> 1]|    true|      true|[1.79549226]|wx4uq33|    1|
+        |-9223263032473946623|    8|      0|110113|[1.76987324]|      [wx4umcr -> 1]|    true|      true|[1.79549226]|wx4umcr|    1|
+        |-9223263032473946623|    9|      0|110113|[1.76987324]|[wx4umfs -> 1, wx...|    true|      true|[1.79549226]|wx4umfs|    1|
+        |-9223263032473946623|    9|      0|110113|[1.76987324]|[wx4umfs -> 1, wx...|    true|      true|[1.79549226]|wx4umfd|    1|
 
 
 df.select($"userId", $"poiId", $"poiType", $"geoHashCounter",$"coreUser", $"coreUser10", explode($"geoHashCounter")).where("userId= -9222835108189541158").show()
@@ -1948,10 +1959,10 @@ df.select($"userId", $"poiId", $"poiType", $"geoHashCounter",$"coreUser", $"core
 |              userId|poiId|poiType|      geoHashCounter|coreUser|coreUser10|    key|value|
 +--------------------+-----+-------+--------------------+--------+----------+-------+-----+
 |-9222835108189541158|    0|      0|      {wx4eh2n -> 1}|    true|      true|wx4eh2n|    1|
-|-9222835108189541158|    1|      0|      {wx4sxw8 -> 1}|    true|      true|wx4sxw8|    1|
-|-9222835108189541158|    2|      0|      {wx4uhpw -> 1}|    true|      true|wx4uhpw|    1|
-|-9222835108189541158|    3|      0|{wx4svfx -> 1, wx...|    true|      true|wx4svfx|    1|
-|-9222835108189541158|    3|      0|{wx4svfx -> 1, wx...|    true|      true|wx4svfq|    3|
+        |-9222835108189541158|    1|      0|      {wx4sxw8 -> 1}|    true|      true|wx4sxw8|    1|
+        |-9222835108189541158|    2|      0|      {wx4uhpw -> 1}|    true|      true|wx4uhpw|    1|
+        |-9222835108189541158|    3|      0|{wx4svfx -> 1, wx...|    true|      true|wx4svfx|    1|
+        |-9222835108189541158|    3|      0|{wx4svfx -> 1, wx...|    true|      true|wx4svfq|    3|
 ```
 
 ## 7.29 map_keys
@@ -1967,7 +1978,7 @@ df.select($"userId", $"poiId", $"poiType", $"geoHashn", $"geoHashCounter",$"core
 
 +--------------------+-----+-------+--------+--------------------+--------+----------+------------------------+
 |              userId|poiId|poiType|geoHashn|      geoHashCounter|coreUser|coreUser10|map_keys(geoHashCounter)|
-+--------------------+-----+-------+--------+--------------------+--------+----------+------------------------+
+        +--------------------+-----+-------+--------+--------------------+--------+----------+------------------------+
 |-9222835108189541158|    0|      0| wx4eh2n|      {wx4eh2n -> 1}|    true|      true|               [wx4eh2n]|
 |-9222835108189541158|    1|      0| wx4sxw8|      {wx4sxw8 -> 1}|    true|      true|               [wx4sxw8]|
 |-9222835108189541158|    2|      0| wx4uhpw|      {wx4uhpw -> 1}|    true|      true|               [wx4uhpw]|
@@ -1995,9 +2006,9 @@ fk.where("size(counts) >2").show(false)
 ## 7.31 lit、typeLit
 **增加常量列**
 - 使用lit函数来添加简单类型常量列<br>
-可以通过函数：`org.apache.spark.sql.functions.lit` 来添加简单类型(string,int,float,long等)的常量列
+  可以通过函数：`org.apache.spark.sql.functions.lit` 来添加简单类型(string,int,float,long等)的常量列
 - 使用typedLit函数添加复合类型常量列<br>
-通过函数：`org.apache.spark.sql.functions.typedLit`，可以添加List，Seq和Map类型的常量列
+  通过函数：`org.apache.spark.sql.functions.typedLit`，可以添加List，Seq和Map类型的常量列
 
 ```scala
 scala> val df1 = sc.parallelize(Seq("Hello", "world")).toDF()
@@ -2017,32 +2028,32 @@ df1.withColumn("some_array", typedLit(Seq(7, 8, 9))).show()
 |value|some_array|
 +-----+----------+
 |Hello| [7, 8, 9]|
-|world| [7, 8, 9]|
-+-----+----------+
+        |world| [7, 8, 9]|
+        +-----+----------+
 
 df1.withColumn("some_struct", typedLit(("teststring", 1, 0.3))).show(false)
 +-----+--------------------+
 |value|some_struct         |
 +-----+--------------------+
 |Hello|[teststring, 1, 0.3]|
-|world|[teststring, 1, 0.3]|
-+-----+--------------------+
+        |world|[teststring, 1, 0.3]|
+        +-----+--------------------+
 
 df1.withColumn("data_map", typedLit(Map("k1" -> 1, "k2" -> 2))).show(false)
 +-----+------------------+
 |value|data_map          |
 +-----+------------------+
 |Hello|[k1 -> 1, k2 -> 2]|
-|world|[k1 -> 1, k2 -> 2]|
-+-----+------------------+
+        |world|[k1 -> 1, k2 -> 2]|
+        +-----+------------------+
 
 ```
 
 > **遇到的问题**<br>
 > `Caused by: java.lang.ClassCastException: scala.collection.immutable.Map$Map3 cannot be cast to scala.collection.mutable.HashMap`
-> 
+>
 > 问题分析：
-> 
+>
 > 无论外部使用`mutable.HashMap`类型还是`immutable.HashMap`类型，传入列中都会统一变为`immutable.Map`类型，故在自定义函数接收时参数也一定要使用`immutable.Map`类型。
 
 
@@ -2052,17 +2063,17 @@ df1.withColumn("data_map", typedLit(Map("k1" -> 1, "k2" -> 2))).show(false)
 
 ```scala
  val extract = udf{(params:String, field_name:String)=>
-     val obj = JSON.parseObject(params)
-     obj.getString(field_name)
-  }
+  val obj = JSON.parseObject(params)
+  obj.getString(field_name)
+}
 ```
 该函数中，params参数是常规的 spark dataframe 中的列，而 field_name 参数是需要额外向函数传入的非列参数，我们需要借助它完成我们的函数逻辑。
 2. 使用带额外参数的 udf函数
 
 ```scala
     es_data
-      .withColumn("dms1", extract(col("params"),lit("dms1")))
-      .withColumn("dms2", extract(col("params"),lit("dms2")))
+        .withColumn("dms1", extract(col("params"),lit("dms1")))
+        .withColumn("dms2", extract(col("params"),lit("dms2")))
 ```
 在这段代码中，params字段列是一个json字符串
 
@@ -2082,12 +2093,12 @@ df1.withColumn("data_map", typedLit(Map("k1" -> 1, "k2" -> 2))).show(false)
 
 ```scala
 @Test
-  def collection(): Unit = {
-    val ds1 = spark.range(10)
-    val ds2 = spark.range(5,15)
+def collection(): Unit = {
+  val ds1 = spark.range(10)
+  val ds2 = spark.range(5,15)
 
-    ds1.except(ds2).show()
-  }
+  ds1.except(ds2).show()
+}
 ```
 
 **（2）intersect**
@@ -2096,13 +2107,13 @@ df1.withColumn("data_map", typedLit(Map("k1" -> 1, "k2" -> 2))).show(false)
 
 ```scala
 @Test
-  def collection(): Unit = {
-    val ds1 = spark.range(10)
-    val ds2 = spark.range(5,15)
+def collection(): Unit = {
+  val ds1 = spark.range(10)
+  val ds2 = spark.range(5,15)
 
 
-    ds1.intersect(ds2).show()
-  }
+  ds1.intersect(ds2).show()
+}
 ```
 
 **（3）union**
@@ -2111,12 +2122,12 @@ df1.withColumn("data_map", typedLit(Map("k1" -> 1, "k2" -> 2))).show(false)
 
 ```scala
 @Test
-  def collection(): Unit = {
-    val ds1 = spark.range(10)
-    val ds2 = spark.range(5,15)
+def collection(): Unit = {
+  val ds1 = spark.range(10)
+  val ds2 = spark.range(5,15)
 
-    ds1.union(ds2).show()
-  }
+  ds1.union(ds2).show()
+}
 ```
 
 **（4）limit**
@@ -2125,12 +2136,12 @@ df1.withColumn("data_map", typedLit(Map("k1" -> 1, "k2" -> 2))).show(false)
 
 ```scala
 @Test
-  def collection(): Unit = {
-    val ds1 = spark.range(10)
-    val ds2 = spark.range(5,15)
+def collection(): Unit = {
+  val ds1 = spark.range(10)
+  val ds2 = spark.range(5,15)
 
-    ds1.limit(5).show()
-  }
+  ds1.limit(5).show()
+}
 ```
 
 ## 7.33 字符串函数
@@ -2218,7 +2229,7 @@ Examples: `SELECT locate('bar', 'foobarbar'); --- 4`
 > 语法 一：  
 > LOCATE(substr,str)  
 > 返回字符串substr中第一次出现子字符串的位置 str。
-> 
+>
 > 语法二：  
 > LOCATE(substr,str,pos)  
 > 返回字符串substr中第一个出现子 字符串的 str位置，从位置开始 pos。0 如果substr不在，则 返回str。返回 NULL如果substr 或者str是NULL。
@@ -2292,27 +2303,27 @@ Since: 2.2.0
 
 ```
 
-**21.split** 
+**21.split**
 
 字符串切割
 ```scala
 df.withColumn("key_arr", split($"key_strs", "[|]")).withColumn("geoHash7", explode($"key_arr"))
-.select("userId", "poiId", "poiType", "key_strs","geoHash7").show
+        .select("userId", "poiId", "poiType", "key_strs","geoHash7").show
 
 结果：
 +--------------------+-----+-------+-------------------------------+--------+
 |userId              |poiId|poiType|key_strs                       |geoHash7|
 +--------------------+-----+-------+-------------------------------+--------+
 |-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xd |
-|-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xg |
-|-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xe |
-|-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xu |
-|-1955534353007518298|2    |0      |wwe09x5|wwe09wf|wwe09x7        |wwe09x5 |
-|-1955534353007518298|2    |0      |wwe09x5|wwe09wf|wwe09x7        |wwe09wf |
-|-1955534353007518298|2    |0      |wwe09x5|wwe09wf|wwe09x7        |wwe09x7 |
-|-1955534353007518298|3    |0      |wwe09wd                        |wwe09wd |
-|-1955534353007518298|4    |0      |wwe09tc                        |wwe09tc |
-+--------------------+-----+-------+-------------------------------+--------+
+        |-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xg |
+        |-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xe |
+        |-1955534353007518298|0    |0      |wwe09xd|wwe09xg|wwe09xe|wwe09xu|wwe09xu |
+        |-1955534353007518298|2    |0      |wwe09x5|wwe09wf|wwe09x7        |wwe09x5 |
+        |-1955534353007518298|2    |0      |wwe09x5|wwe09wf|wwe09x7        |wwe09wf |
+        |-1955534353007518298|2    |0      |wwe09x5|wwe09wf|wwe09x7        |wwe09x7 |
+        |-1955534353007518298|3    |0      |wwe09wd                        |wwe09wd |
+        |-1955534353007518298|4    |0      |wwe09tc                        |wwe09tc |
+        +--------------------+-----+-------+-------------------------------+--------+
 ```
 
 
@@ -2336,9 +2347,9 @@ import org.apache.spark.sql.functions._
 
 val first_2_now_window = Window.partitionBy("pcode").orderBy("event_date")
 df_userlogs_date.select(
-    $"pcode",
-    $"event_date",
-    sum($"duration").over(first_2_now_window).as("sum_duration")
+  $"pcode",
+  $"event_date",
+  sum($"duration").over(first_2_now_window).as("sum_duration")
 ).show
 
 ```
@@ -2386,60 +2397,60 @@ df.withColumn("prevTimeStop", lag($"timeStop", 1, 9999999999999L).over(Window.pa
 
 ```scala
 val data = spark.read.json(spark.createDataset(
-      Seq(
-         """{"name":"A","lesson":"Math","score":100}""",
-         """{"name":"B","lesson":"Math","score":100}""",
-         """{"name":"C","lesson":"Math","score":99}""",
-         """{"name":"D","lesson":"Math","score":98}""",
-         """{"name":"A","lesson":"English","score":100}""",
-         """{"name":"B","lesson":"English","score":99}""",
-         """{"name":"C","lesson":"English","score":99}""",
-         """{"name":"D","lesson":"English","score":98}"""
-      )))
+  Seq(
+    """{"name":"A","lesson":"Math","score":100}""",
+    """{"name":"B","lesson":"Math","score":100}""",
+    """{"name":"C","lesson":"Math","score":99}""",
+    """{"name":"D","lesson":"Math","score":98}""",
+    """{"name":"A","lesson":"English","score":100}""",
+    """{"name":"B","lesson":"English","score":99}""",
+    """{"name":"C","lesson":"English","score":99}""",
+    """{"name":"D","lesson":"English","score":98}"""
+  )))
 
 data.show
 
 spark.sql(
-      s"""
-         |select name, lesson, score, (score/sum(score) over()) as y1, (score/sum(score) over(partition by name)) as y2
-         |from score
-         |""".stripMargin).show
+  s"""
+     |select name, lesson, score, (score/sum(score) over()) as y1, (score/sum(score) over(partition by name)) as y2
+     |from score
+     |""".stripMargin).show
 
 ```
 
 [![](https://img-blog.csdnimg.cn/20200505140551225.png)](https://z3.ax1x.com/2021/08/10/fYylmn.png)
 
-### 8.3.2 求解历史数据累加  
+### 8.3.2 求解历史数据累加
 
 比如，有个需求，求取从2018年到2020年各年累加的物品总数。
 
 ```scala
 val data1 = spark.read.json(spark.createDataset(
-      Seq(
-        """{"date":"2020-01-01","build":1}""",
-        """{"date":"2020-01-01","build":1}""",
-        """{"date":"2020-04-01","build":1}""",
-        """{"date":"2020-04-01","build":1}""",
-        """{"date":"2020-05-01","build":1}""",
-        """{"date":"2020-09-01","build":1}""",
-        """{"date":"2019-01-01","build":1}""",
-        """{"date":"2019-01-01","build":1}""",
-        """{"date":"2018-01-01","build":1}"""
-      )))
+  Seq(
+    """{"date":"2020-01-01","build":1}""",
+    """{"date":"2020-01-01","build":1}""",
+    """{"date":"2020-04-01","build":1}""",
+    """{"date":"2020-04-01","build":1}""",
+    """{"date":"2020-05-01","build":1}""",
+    """{"date":"2020-09-01","build":1}""",
+    """{"date":"2019-01-01","build":1}""",
+    """{"date":"2019-01-01","build":1}""",
+    """{"date":"2018-01-01","build":1}"""
+  )))
 data1.createOrReplaceTempView("data1")
 
-    
-spark.sql(
-      s"""
-         |select c.dd,sum(c.sum_build) over(partition by 1 order by dd asc) from
-         |(select  substring(date,0,4) as dd, sum(build) as sum_build  from data1 group by dd) c
-         |""".stripMargin).show
 
 spark.sql(
-      s"""
-         |select c.dd,sum(c.sum_build) over (partition by 1) from
-         |(select  substring(date,0,4) as dd, sum(build) as sum_build  from data1 group by dd) c
-         |""".stripMargin).show    
+  s"""
+     |select c.dd,sum(c.sum_build) over(partition by 1 order by dd asc) from
+     |(select  substring(date,0,4) as dd, sum(build) as sum_build  from data1 group by dd) c
+     |""".stripMargin).show
+
+spark.sql(
+  s"""
+     |select c.dd,sum(c.sum_build) over (partition by 1) from
+     |(select  substring(date,0,4) as dd, sum(build) as sum_build  from data1 group by dd) c
+     |""".stripMargin).show
 
 ```
 
